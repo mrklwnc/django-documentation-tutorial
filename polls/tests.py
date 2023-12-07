@@ -48,8 +48,7 @@ class QuestionModelTests(TestCase):
         recent_question = Question(pub_date=time)
         self.assertIs(recent_question.was_published_recently(), True)
 
-    # TODO: This test should fetch all question that has choices
-    def test_question_has_choices(self):
+    def test_new_question_has_no_available_choices(self):
         question = create_question(
             question_text="Do I have a choice?", days=-1)
         self.assertIs(question.hasChoices(), False,
@@ -112,6 +111,11 @@ class QuestionIndexViewTests(TestCase):
             response.context["latest_question_list"],
             [question2, question1],
         )
+
+    # TODO: Create a test where fetched questions must have choices
+    # def test_fetch_questions_with_choices(self):
+    #     questions = Question.objects.get(choices=True)
+    #     # self.assertQuerySetEqual()
 
 
 class QuestionDetailViewTests(TestCase):
