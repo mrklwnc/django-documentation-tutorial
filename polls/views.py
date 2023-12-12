@@ -1,14 +1,14 @@
-from typing import Any
-from django.db import models
-from django.db.models.query import QuerySet
-from django.http import HttpResponseRedirect
+from json import loads, dump
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.db.models import F
 from django.views import generic
 from django.utils import timezone
 from django.db.models import Count
+from django.core.serializers import serialize
 
+from django.contrib.auth.models import User
 from .models import Choice, Question
 
 # Create your views here.
@@ -34,7 +34,7 @@ class IndexView(generic.ListView):
         """
         Return the last five published questions with available choices
         """
-        return Question.objects.annotate(num_choices=Count('choices')).filter(num_choices__gt=0).order_by("-pub_date")[:5]
+        return Question.objects.annotate(num_choices=Count('choices')).filter(pub_date__lte=timezone.now(), num_choices__gt=0).order_by("-pub_date")[:5]
 
 # NOTE: Without using Generic Views
 # def detail(request, pk):
@@ -48,7 +48,7 @@ class DetailView(generic.DetailView):
     context_object_name = "question"
 
     def get_queryset(self):
-        return Question.objects.filter(pk=self.kwargs.get("pk"))
+        return Question.objects.filter(pub_date__lte=timezone.now(), pk=self.kwargs.get("pk"))
 
 
 def vote(request, pk):
@@ -74,3 +74,45 @@ class ResultsView(generic.DetailView):
 
     def get_queryset(self):
         return Question.objects.filter(pk=self.kwargs.get("pk"))
+
+
+# serializer flatten
+def flatten_fields(inst: dict, excluded=[]) -> dict:
+    inst = {**inst["fields"], **inst}
+    trimmed_inst = {
+        key: inst[key] for key in inst.keys() if key not in excluded
+    }
+    del trimmed_inst["fields"]
+
+    return trimmed_inst
+
+
+# Serialize a single model instance
+def single(request, pk):
+    item = User.objects.get(pk=pk)
+    # dumps item as JSON array with 1 value
+    serialized_data = serialize("json", [item])
+    # load as Python Dict and get the only value
+    dumped_item = loads(serialized_data)[0]
+    flattened_item = flatten_fields(
+        dumped_item, ["password", "is_superuser", "is_staff"])
+
+    return JsonResponse(flattened_item)
+
+
+# Serialize a list of model instances
+def list(request):
+    item = User.objects.all()
+    # dumps item as JSON array with 1 value
+    serialized_data = serialize("json", item)
+    # load as Python Dict and get the only value
+    dumped_item = loads(serialized_data)
+
+    flattened_fields = []
+
+    for field in dumped_item:
+        flattened_item = flatten_fields(
+            field, ["password", "is_superuser", "is_staff"])
+        flattened_fields.append(flattened_item)
+
+    return JsonResponse(flattened_fields, safe=False)

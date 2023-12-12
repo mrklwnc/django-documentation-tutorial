@@ -1,0 +1,12 @@
+body {
+    background: white url("images/background.png") no-repeat;
+}
+
+li {
+    display: flex;
+    justify-content: end;
+}
+
+li a {
+    color: green;
+}
