@@ -2,6 +2,7 @@ import datetime
 
 from django.db import models
 from django.utils import timezone
+from django.contrib import admin
 
 # Create your models here.
 
@@ -13,6 +14,11 @@ class Question(models.Model):
     def __str__(self):
         return self.question_text
 
+    @admin.display(
+        boolean=True,
+        ordering="pub_date",
+        description="Published recently?"
+    )
     def was_published_recently(self):
         # This was a bug intended to be fixed in Django Tutorial part 5
         # return self.pub_date >= timezone.now() - datetime.timedelta(days=1)
@@ -20,7 +26,7 @@ class Question(models.Model):
         # This was the fixed version
         now = timezone.now()
         return now - datetime.timedelta(days=1) <= self.pub_date <= now
-    was_published_recently.short_description = "Was Published recently"
+    # was_published_recently.short_description = "Was Published recently"
 
     def hasChoices(self):
         return self.choices.exists()
